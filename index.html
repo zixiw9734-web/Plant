@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>🌿 植物纤维化学 · 交互知识板</title>
+    <!-- Font Awesome 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Fabric.js 画布核心 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', 'Roboto', system-ui, sans-serif;
+            background: #f4f7f2;
+            color: #1e3a2f;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        /* 头部 */
+        .app-header {
+            background: rgba(255,255,255,0.85);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 10px 20px;
+            border-bottom: 1px solid #cbdcd0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            box-shadow: 0 2px 8px rgba(0,20,10,0.05);
+        }
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .logo-icon {
+            font-size: 28px;
+            color: #2e6b4b;
+        }
+        .logo-area h1 {
+            font-weight: 600;
+            font-size: 1.6rem;
+            background: linear-gradient(135deg, #1d4e3d, #3b7a5e);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .badge {
+            background: #e3f0e8;
+            padding: 6px 16px;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            color: #1e4a36;
+            font-weight: 500;
+        }
+        /* 主布局: 左侧知识库 + 右侧画布 */
+        .app-main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            padding: 16px 18px 18px 18px;
+            gap: 18px;
+        }
+        /* 左侧面板 — 资料卡片 (整合教材内容) */
+        .knowledge-panel {
+            width: 300px;
+            background: #fbfdfc;
+            border-radius: 24px;
+            box-shadow: 0 10px 25px -5px rgba(30,50,40,0.1);
+            padding: 18px 12px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #d7e5db;
+            overflow-y: auto;
+        }
+        .panel-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: #1a4635;
+            padding-left: 6px;
+        }
+        .panel-title i {
+            color: #3f8d6a;
+            font-size: 1.3rem;
+        }
+        .knowledge-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .card {
+            background: white;
+            border-radius: 18px;
+            padding: 14px 14px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.02);
+            border: 1px solid #cde0d6;
+            transition: all 0.15s;
+            cursor: pointer;
+        }
+        .card:hover {
+            background: #ecf9f1;
+            border-color: #6ba184;
+            box-shadow: 0 6px 12px rgba(60,110,80,0.08);
+            transform: translateY(-2px);
+        }
+        .card-title {
+            font-weight: 700;
+            font-size: 1.05rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+            color: #1d4e3d;
+        }
+        .card-desc {
+            font-size: 0.85rem;
+            color: #2a523e;
+            line-height: 1.4;
+            opacity: 0.85;
+        }
+        .card i {
+            color: #408a62;
+            width: 22px;
+            text-align: center;
+        }
+        .upload-area {
+            margin-top: 24px;
+            border-top: 1px dashed #b6cfc1;
+            padding-top: 20px;
+        }
+        .upload-btn {
+            background: #eef5f0;
+            border-radius: 40px;
+            padding: 14px 10px;
+            text-align: center;
+            font-weight: 500;
+            color: #1a4635;
+            border: 1px dashed #5f9b7a;
+            transition: 0.2s;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .upload-btn:hover {
+            background: #d9ecdf;
+            border: 1px solid #367a58;
+        }
+        .upload-btn i {
+            font-size: 1.3rem;
+            color: #2e7a54;
+        }
+        #file-input { display: none; }
+        .hint-note {
+            font-size: 0.8rem;
+            margin-top: 12px;
+            opacity: 0.7;
+            padding-left: 6px;
+        }
+
+        /* 右侧画布区 */
+        .canvas-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #fefefb;
+            border-radius: 24px;
+            box-shadow: 0 12px 28px rgba(0,20,0,0.08);
+            border: 1px solid #d1e2d8;
+            overflow: hidden;
+            padding: 8px;
+        }
+        /* 工具栏 */
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px 10px 14px;
+            background: #ffffffea;
+            border-radius: 48px;
+            margin-bottom: 8px;
+            backdrop-filter: blur(4px);
+        }
+        .tool-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: #eaf3ed;
+            padding: 4px 6px;
+            border-radius: 40px;
+        }
+        .tool-btn {
+            background: transparent;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 40px;
+            font-size: 1.2rem;
+            color: #265a41;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.15s;
+        }
+        .tool-btn.active {
+            background: #2f7e5a;
+            color: white;
+            box-shadow: 0 4px 8px rgba(40,100,70,0.2);
+        }
+        .tool-btn:hover { background: #c2ddd0; }
+        .color-picker-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #eaf3ed;
+            padding: 4px 12px;
+            border-radius: 40px;
+        }
+        #brushColor {
+            width: 34px;
+            height: 34px;
+            border: 2px solid #367a58;
+            border-radius: 40px;
+            cursor: pointer;
+            background: #2a5e44;
+        }
+        #brushSize {
+            width: 110px;
+            accent-color: #2e7a54;
+        }
+        .size-value {
+            min-width: 32px;
+            font-weight: 600;
+            color: #1e4a36;
+        }
+        .canvas-wrapper {
+            flex: 1;
+            background: #fdfdf8;
+            border-radius: 20px;
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid #cbdcd0;
+        }
+        #fabricCanvas {
+            background: white;
+            box-shadow: 0 0 0 1px #d0dfd6;
+            border-radius: 16px;
+            display: block;
+        }
+        .footer-hint {
+            padding: 6px 16px 2px;
+            font-size: 0.8rem;
+            color: #4e7862;
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+        i { pointer-events: none; }
+        /* 滚动条 */
+        .knowledge-panel::-webkit-scrollbar { width: 5px; }
+        .knowledge-panel::-webkit-scrollbar-thumb { background: #b7cfc2; border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <div class="logo-area">
+            <i class="fas fa-leaf logo-icon"></i>
+            <h1>植物纤维化学·智绘板</h1>
+        </div>
+        <div class="badge">
+            <i class="fas fa-pencil-alt" style="margin-right: 6px;"></i>自由手写 · 图文混排
+        </div>
+    </header>
+
+    <div class="app-main">
+        <!-- 左侧知识库 (整合教材精华) -->
+        <div class="knowledge-panel">
+            <div class="panel-title">
+                <i class="fas fa-book-open"></i>
+                <span>📚 课程知识库</span>
+            </div>
+            <div class="knowledge-cards">
+                <!-- 卡片均来自上传PDF内容 -->
+                <div class="card" data-type="text" data-content="🌱 植物纤维化学：研究木质纤维生物质的结构、化学组成（纤维素/半纤维素/木质素）及其性质的科学。原料：针叶材(软木)、阔叶材(硬木)、禾本科。">
+                    <div class="card-title"><i class="fas fa-flask"></i> 课程导论</div>
+                    <div class="card-desc">绪论·研究内容·纤维概念</div>
+                </div>
+                <div class="card" data-type="text" data-content="🧬 纤维素：β-D-葡萄糖基通过1,4-苷键连接而成的线形高分子，聚合度>10000。不溶于水，构成细胞壁骨架。">
+                    <div class="card-title"><i class="fas fa-dna"></i> 纤维素 (Cellulose)</div>
+                    <div class="card-desc">均一聚糖·结晶区/无定形区</div>
+                </div>
+                <div class="card" data-type="text" data-content="🧪 半纤维素：由两种或以上糖基组成(木糖、甘露糖等)，有分支，聚合度<200，易吸水润胀，填充在微纤丝之间。">
+                    <div class="card-title"><i class="fas fa-bezier-curve"></i> 半纤维素</div>
+                    <div class="card-desc">杂多糖·无定形·戊聚糖</div>
+                </div>
+                <div class="card" data-type="text" data-content="🪵 木质素：苯丙烷单元(C9)通过醚键和C-C键连接的三维网状芳香族高聚物。三种单体：对羟苯基(H)、愈创木基(G)、紫丁香基(S)。针叶材以G为主，阔叶材G-S，草类G-S-H。">
+                    <div class="card-title"><i class="fas fa-tree"></i> 木质素 (Lignin)</div>
+                    <div class="card-desc">G/S/H单元·不均一性</div>
+                </div>
+                <div class="card" data-type="text" data-content="🔬 木素分离方法：磨木木质素(MWL)、纤维素酶解木质素(CEL)、酶酸解木质素(EMAL)。Klason木素(酸不溶)+酸溶木素=总木素。工业木质素：碱木质素、木质素磺酸盐。">
+                    <div class="card-title"><i class="fas fa-vial"></i> 木素分离与测定</div>
+                    <div class="card-desc">MWL/CEL·Klason法·紫外法</div>
+                </div>
+                <div class="card" data-type="image" data-img="cellwall">
+                    <div class="card-title"><i class="fas fa-layer-group"></i> 细胞壁超微结构</div>
+                    <div class="card-desc">ML-P-S1-S2-S3 层次示意</div>
+                </div>
+                <div class="card" data-type="text" data-content="📏 纤维形态：长度、宽度、长宽比、壁腔比(Runkel比)。壁腔比小则柔软，结合力强。针叶材纤维长(3-5mm)，阔叶材较短(0.7-1.7mm)，禾本科更短。">
+                    <div class="card-title"><i class="fas fa-ruler-combined"></i> 纤维形态学</div>
+                    <div class="card-desc">长宽比·壁腔比·粗度</div>
+                </div>
+                <div class="card" data-type="text" data-content="🌾 非木材纤维：禾本科(麦草/芦苇/蔗渣/竹)杂细胞含量高(30-50%)，灰分高，硅含量影响碱回收。纤维短，成纸匀度好但强度较低。">
+                    <div class="card-title"><i class="fas fa-wheat-alt"></i> 禾本科原料</div>
+                    <div class="card-desc">稻草·蔗渣·竹·杂细胞</div>
+                </div>
+                <div class="card" data-type="text" data-content="🧫 针叶材显微构造：主要由管胞(90%)组成，具缘纹孔，交叉场纹孔(窗格型/云杉型等)，树脂道(松科六属)。阔叶材：导管、木纤维、轴向薄壁组织发达。">
+                    <div class="card-title"><i class="fas fa-microscope"></i> 显微构造</div>
+                    <div class="card-desc">管胞·导管·纹孔·木射线</div>
+                </div>
+            </div>
+            
+            <!-- 上传区 + 保存/加载快捷操作 -->
+            <div class="upload-area">
+                <div class="upload-btn" id="uploadImageBtn">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <span>📎 插入图片 (PPT/照片)</span>
+                </div>
+                <input type="file" id="file-input" accept="image/*">
+                <div style="display: flex; gap: 8px; margin-top: 14px;">
+                    <button class="tool-btn" id="saveJSONBtn" style="flex:1; background:#eaf3ed; border-radius:30px;" title="保存画布为JSON"><i class="fas fa-save"></i> 保存</button>
+                    <button class="tool-btn" id="loadJSONBtn" style="flex:1; background:#eaf3ed; border-radius:30px;" title="加载JSON文件"><i class="fas fa-folder-open"></i> 加载</button>
+                    <input type="file" id="load-file-input" accept=".json,application/json" style="display:none;">
+                </div>
+                <div class="hint-note">
+                    <i class="fas fa-hand-pointer"></i> 点击卡片插入知识点<br>
+                    <i class="fas fa-pen-fancy"></i> 画笔支持Apple Pencil
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧画布操作区 -->
+        <div class="canvas-area">
+            <div class="toolbar">
+                <div class="tool-group">
+                    <button class="tool-btn" id="selectModeBtn" title="选择/移动 (V)"><i class="fas fa-mouse-pointer"></i></button>
+                    <button class="tool-btn" id="drawModeBtn" title="手写/画笔 (B)"><i class="fas fa-paint-brush"></i></button>
+                </div>
+                <div class="tool-group">
+                    <button class="tool-btn" id="addTextBtn" title="添加文字框"><i class="fas fa-font"></i></button>
+                    <button class="tool-btn" id="deleteSelectedBtn" title="删除选中 (Del)"><i class="fas fa-trash-alt"></i></button>
+                    <button class="tool-btn" id="clearCanvasBtn" title="清空画布"><i class="fas fa-eraser"></i></button>
+                </div>
+                <div class="color-picker-wrapper">
+                    <label for="brushColor"><i class="fas fa-palette"></i></label>
+                    <input type="color" id="brushColor" value="#2a5e44">
+                </div>
+                <div class="color-picker-wrapper">
+                    <i class="fas fa-circle"></i>
+                    <input type="range" id="brushSize" min="1" max="30" value="5" step="0.5">
+                    <span class="size-value" id="brushSizeValue">5.0</span>
+                </div>
+                <div style="margin-left: auto; display: flex;">
+                    <button class="tool-btn" id="exportPNGBtn" title="导出为PNG"><i class="fas fa-download"></i></button>
+                    <button class="tool-btn" id="resetDemoBtn" title="重置示例"><i class="fas fa-sync-alt"></i></button>
+                </div>
+            </div>
+            <div class="canvas-wrapper">
+                <canvas id="fabricCanvas" width="1000" height="650"></canvas>
+            </div>
+            <div class="footer-hint">
+                <span><i class="far fa-edit"></i> 双击文字编辑 · Delete删除</span>
+                <span><i class="fas fa-pencil-alt"></i> 画笔适配触控笔</span>
+                <span><i class="fas fa-arrows-alt"></i> 双指平移/缩放</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function(){
+            // ---------- 初始化画布 ----------
+            const canvasElement = document.getElementById('fabricCanvas');
+            const canvas = new fabric.Canvas('fabricCanvas', {
+                selection: true,
+                preserveObjectStacking: true,
+                backgroundColor: '#ffffff',
+                width: 1000,
+                height: 650
+            });
+
+            // 自适应父容器
+            function resizeCanvas() {
+                const wrapper = document.querySelector('.canvas-wrapper');
+                const w = wrapper.clientWidth;
+                const h = wrapper.clientHeight;
+                canvas.setDimensions({ width: w, height: h });
+                canvas.renderAll();
+            }
+            window.addEventListener('resize', resizeCanvas);
+            
+            // 画笔设置
+            let drawingMode = false;
+            const brushColor = document.getElementById('brushColor');
+            const brushSize = document.getElementById('brushSize');
+            const brushSizeSpan = document.getElementById('brushSizeValue');
+            
+            function updateBrush() {
+                if (canvas.freeDrawingBrush) {
+                    canvas.freeDrawingBrush.color = brushColor.value;
+                    canvas.freeDrawingBrush.width = parseFloat(brushSize.value);
+                }
+            }
+            brushColor.addEventListener('input', updateBrush);
+            brushSize.addEventListener('input', (e) => {
+                brushSizeSpan.textContent = parseFloat(e.target.value).toFixed(1);
+                updateBrush();
+            });
+            canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
+            updateBrush();
+            
+            // 模式切换
+            const selectBtn = document.getElementById('selectModeBtn');
+            const drawBtn = document.getElementById('drawModeBtn');
+            function setSelectMode() {
+                canvas.isDrawingMode = false;
+                drawingMode = false;
+                selectBtn.classList.add('active');
+                drawBtn.classList.remove('active');
+                canvas.selection = true;
+                canvas.forEachObject(obj => obj.selectable = true);
+                canvas.renderAll();
+            }
+            function setDrawMode() {
+                canvas.isDrawingMode = true;
+                drawingMode = true;
+                drawBtn.classList.add('active');
+                selectBtn.classList.remove('active');
+                canvas.selection = false;
+                canvas.renderAll();
+            }
+            selectBtn.addEventListener('click', setSelectMode);
+            drawBtn.addEventListener('click', setDrawMode);
+            setSelectMode();
+            
+            // 添加文字
+            document.getElementById('addTextBtn').addEventListener('click', () => {
+                const text = new fabric.Textbox('✏️ 双击编辑知识点', {
+                    left: 150, top: 150, width: 240,
+                    fontSize: 20, fontFamily: 'Segoe UI', fill: '#1e3a2f',
+                    backgroundColor: '#f6fff2', padding: 8, borderRadius: 12,
+                    editable: true, shadow: '2px 3px 6px rgba(0,0,0,0.05)'
+                });
+                canvas.add(text);
+                canvas.setActiveObject(text);
+                canvas.renderAll();
+                setSelectMode();
+            });
+            
+            // 删除
+            document.getElementById('deleteSelectedBtn').addEventListener('click', () => {
+                const active = canvas.getActiveObject();
+                if (active) { canvas.remove(active); canvas.renderAll(); }
+                else { alert('请先选中对象'); }
+            });
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Delete' && !drawingMode) {
+                    const active = canvas.getActiveObject();
+                    if (active) { canvas.remove(active); canvas.renderAll(); }
+                }
+                if (e.key === 'b' || e.key === 'B') { if (!drawingMode) setDrawMode(); }
+                if (e.key === 'v' || e.key === 'V') { if (drawingMode) setSelectMode(); }
+            });
+            
+            // 清空
+            document.getElementById('clearCanvasBtn').addEventListener('click', () => {
+                if (confirm('清除画布所有内容？')) {
+                    canvas.clear();
+                    canvas.backgroundColor = '#ffffff';
+                    canvas.renderAll();
+                }
+            });
+            
+            // 导出PNG
+            document.getElementById('exportPNGBtn').addEventListener('click', () => {
+                const dataURL = canvas.toDataURL({ format: 'png', multiplier: 2 });
+                const link = document.createElement('a');
+                link.download = 'plant-fiber-board.png';
+                link.href = dataURL;
+                link.click();
+            });
+            
+            // 保存/加载 JSON
+            document.getElementById('saveJSONBtn').addEventListener('click', () => {
+                const json = JSON.stringify(canvas.toJSON());
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = 'fiber-canvas.json'; a.click();
+                URL.revokeObjectURL(url);
+            });
+            const loadFileInput = document.getElementById('load-file-input');
+            document.getElementById('loadJSONBtn').addEventListener('click', () => loadFileInput.click());
+            loadFileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    try {
+                        canvas.loadFromJSON(ev.target.result, () => {
+                            canvas.renderAll();
+                            setSelectMode();
+                        });
+                    } catch (err) { alert('无效的JSON文件'); }
+                };
+                reader.readAsText(file);
+                loadFileInput.value = '';
+            });
+            
+            // ---------- 知识卡片点击 ----------
+            const cards = document.querySelectorAll('.card');
+            cards.forEach(card => {
+                card.addEventListener('click', () => {
+                    const type = card.dataset.type;
+                    const content = card.dataset.content;
+                    if (type === 'text' && content) {
+                        const textObj = new fabric.Textbox(content, {
+                            left: 80 + Math.random()*200, top: 100 + Math.random()*200,
+                            width: 300, fontSize: 17, fontFamily: 'Segoe UI', fill: '#1d4e3d',
+                            backgroundColor: '#f4fbf3', padding: 10, borderRadius: 14,
+                            shadow: '2px 3px 8px rgba(0,20,0,0.06)', editable: true
+                        });
+                        canvas.add(textObj);
+                        canvas.setActiveObject(textObj);
+                        canvas.renderAll();
+                        setSelectMode();
+                    } else if (card.dataset.img === 'cellwall') {
+                        addCellWallDiagram();
+                    }
+                });
+            });
+            
+            // 预制细胞壁层次图
+            function addCellWallDiagram() {
+                const items = [];
+                const ml = new fabric.Rect({ left: 0, top: 0, width: 200, height: 28, fill: '#d9c8a2', rx: 6 });
+                const mlText = new fabric.Text('ML (胞间层)', { left: 45, top: 6, fontSize: 13, fill: '#2e3b2c', fontWeight: 'bold' });
+                const p = new fabric.Rect({ left: 0, top: 30, width: 200, height: 28, fill: '#bfae8a', rx: 6 });
+                const pText = new fabric.Text('P (初生壁)', { left: 50, top: 36, fontSize: 13 });
+                const s1 = new fabric.Rect({ left: 0, top: 60, width: 200, height: 28, fill: '#a2b89a', rx: 6 });
+                const s1Text = new fabric.Text('S1 (次生壁外层)', { left: 30, top: 66, fontSize: 13 });
+                const s2 = new fabric.Rect({ left: 0, top: 90, width: 200, height: 45, fill: '#8fae87', rx: 6 });
+                const s2Text = new fabric.Text('S2 (中层·最厚)', { left: 30, top: 102, fontSize: 13, fontWeight: 'bold' });
+                const s3 = new fabric.Rect({ left: 0, top: 137, width: 200, height: 28, fill: '#7f9a7a', rx: 6 });
+                const s3Text = new fabric.Text('S3 (内层)', { left: 50, top: 143, fontSize: 13 });
+                const arrow = new fabric.Line([160, 110, 190, 80], { stroke: '#2e4a35', strokeWidth: 2 });
+                const dirText = new fabric.Text('微纤维取向', { left: 145, top: 65, fontSize: 11, fill: '#26432e' });
+                items.push(ml, mlText, p, pText, s1, s1Text, s2, s2Text, s3, s3Text, arrow, dirText);
+                const group = new fabric.Group(items, { left: 250, top: 200, scaleX: 1.3, scaleY: 1.3 });
+                canvas.add(group);
+                canvas.setActiveObject(group);
+                canvas.renderAll();
+                setSelectMode();
+            }
+            
+            // 图片上传
+            const fileInput = document.getElementById('file-input');
+            document.getElementById('uploadImageBtn').addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    fabric.Image.fromURL(ev.target.result, (img) => {
+                        img.scaleToWidth(280);
+                        img.set({ left: 200, top: 180, hasControls: true, shadow: '3px 4px 10px rgba(0,0,0,0.1)' });
+                        canvas.add(img);
+                        canvas.setActiveObject(img);
+                        canvas.renderAll();
+                        setSelectMode();
+                    });
+                };
+                reader.readAsDataURL(file);
+                fileInput.value = '';
+            });
+            
+            // 粘贴图片支持
+            document.addEventListener('paste', (e) => {
+                if (!e.clipboardData || !e.clipboardData.items) return;
+                const items = e.clipboardData.items;
+                for (let i = 0; i < items.length; i++) {
+                    if (items[i].type.indexOf('image') !== -1) {
+                        const blob = items[i].getAsFile();
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                            fabric.Image.fromURL(ev.target.result, (img) => {
+                                img.scaleToWidth(280);
+                                img.set({ left: 220, top: 200 });
+                                canvas.add(img);
+                                canvas.renderAll();
+                            });
+                        };
+                        reader.readAsDataURL(blob);
+                        break;
+                    }
+                }
+            });
+            
+            // ---------- 初始化示例内容 (体现课程核心) ----------
+            function loadDemoContent() {
+                canvas.clear();
+                canvas.backgroundColor = '#ffffff';
+                
+                const title = new fabric.Text('🌾 植物纤维化学 · 核心笔记', { left: 60, top: 30, fontSize: 34, fontWeight: 'bold', fill: '#1d4e3d', shadow: '2px 2px 0 #d0e6d9' });
+                canvas.add(title);
+                
+                const cellText = new fabric.Textbox('🌱 纤维素：β-1,4-葡聚糖，结晶区与无定形区。聚合度>10000。', { left: 60, top: 110, width: 330, fontSize: 18, fill: '#1e3a2f', backgroundColor: '#ebf7e9', padding: 10, borderRadius: 16 });
+                canvas.add(cellText);
+                
+                const hemiText = new fabric.Textbox('🧪 半纤维素：木糖/甘露糖为主，分支多，聚合度<200，易水解。', { left: 440, top: 110, width: 330, fontSize: 18, fill: '#1e3a2f', backgroundColor: '#f2f2da', padding: 10, borderRadius: 16 });
+                canvas.add(hemiText);
+                
+                const ligninText = new fabric.Textbox('🪵 木质素：G/S/H单元，三维网状。针叶材G为主，阔叶材G-S，草类G-S-H。', { left: 60, top: 240, width: 400, fontSize: 18, fill: '#1e3a2f', backgroundColor: '#f0e2d0', padding: 10, borderRadius: 16 });
+                canvas.add(ligninText);
+                
+                // 纤维形态卡片
+                const morphText = new fabric.Textbox('📏 纤维形态：长宽比影响交织，壁腔比(Runkel比)决定柔软性。针叶材纤维长3-5mm。', { left: 60, top: 360, width: 400, fontSize: 18, fill: '#1e3a2f', backgroundColor: '#ddebe0', padding: 10, borderRadius: 16 });
+                canvas.add(morphText);
+                
+                // 插入一个木素单体简图
+                const monomerGroup = [];
+                const rect = new fabric.Rect({ left: 0, top: 0, width: 240, height: 80, fill: '#f9f3e7', rx: 12, stroke: '#b0aa8f' });
+                const gText = new fabric.Text('G: 愈创木基', { left: 20, top: 15, fontSize: 15, fontWeight: 'bold' });
+                const sText = new fabric.Text('S: 紫丁香基', { left: 20, top: 35, fontSize: 15 });
+                const hText = new fabric.Text('H: 对羟苯基', { left: 20, top: 55, fontSize: 15 });
+                monomerGroup.push(rect, gText, sText, hText);
+                const monomerCard = new fabric.Group(monomerGroup, { left: 500, top: 250 });
+                canvas.add(monomerCard);
+                
+                // 分离方法标注
+                const methodText = new fabric.Textbox('🔬 木素分离：MWL(磨木木质素)、CEL(酶解)、EMAL。Klason+酸溶木素=总木素。', { left: 60, top: 460, width: 500, fontSize: 17, backgroundColor: '#e3eadd', padding: 10, borderRadius: 16 });
+                canvas.add(methodText);
+                
+                canvas.renderAll();
+                setSelectMode();
+            }
+            
+            document.getElementById('resetDemoBtn').addEventListener('click', () => {
+                if (confirm('重置为课程示例笔记？')) loadDemoContent();
+            });
+            
+            setTimeout(() => { resizeCanvas(); loadDemoContent(); }, 60);
+            
+            // 手写笔优化 (iPad Pencil 识别)
+            canvas.on('mouse:down', (opt) => {
+                if (opt.e.pointerType === 'pen') {
+                    // 可忽略手掌误触，fabric默认处理
+                }
+            });
+        })();
+    </script>
+</body>
+</html>
